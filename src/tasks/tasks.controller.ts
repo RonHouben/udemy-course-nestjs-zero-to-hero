@@ -13,6 +13,7 @@ import {
 import { CreateTaskDto } from './dto/create-task.dto';
 import { DeleteTaskDto } from './dto/delete-task.dto';
 import { GetTasksFilterDto } from './dto/get-tasks-filter-dto';
+import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { Task } from './tasks.model';
 import { TasksService } from './tasks.service';
 
@@ -43,11 +44,12 @@ export class TasksController {
   }
 
   @Patch('/:id/status')
+  @UsePipes(ValidationPipe)
   updateTaskStatus(
     @Param('id') id: Task['id'],
-    @Body('status') status: Task['status'],
+    @Body() updateTaskStatusDto: UpdateTaskStatusDto,
   ): Task {
-    return this.tasksService.updateTaskStatus(id, status);
+    return this.tasksService.updateTaskStatus(id, updateTaskStatusDto.status);
   }
 
   @Delete('/:id')
