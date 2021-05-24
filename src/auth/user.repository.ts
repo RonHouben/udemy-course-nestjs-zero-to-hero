@@ -1,6 +1,7 @@
 import {
   ConflictException,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { EntityRepository, Repository } from 'typeorm';
 import { AuthCredentialsDto } from './dto/auth-credentials.dto';
@@ -9,6 +10,8 @@ import * as bcrypt from 'bcrypt';
 
 @EntityRepository(User)
 export class UserRepository extends Repository<User> {
+  private readonly logger = new Logger('UserRepository');
+
   async signUp(authCredentialsDto: AuthCredentialsDto): Promise<void> {
     const { username, password } = authCredentialsDto;
 
@@ -35,14 +38,30 @@ export class UserRepository extends Repository<User> {
   async validateUserPassword(
     authCredentialsDto: AuthCredentialsDto,
   ): Promise<User['username']> {
+    this.logger.verbose(
+      `Validation User Password for user "${authCredentialsDto.username}"`,
+    );
     const { username, password } = authCredentialsDto;
 
-    const user = await this.findOne({ username });
+    try {
+      const user = await this.findOne({ username });
 
-    if (user && (await user.validatePassword(password))) {
-      return user.username;
-    } else {
-      return null;
+      if (user && (await user.validatePassword(password))) {
+        this.logger.verbose(`Found user "${username}"`);
+
+        return user.username;
+      } else {
+        this.logger.verbose(
+          `Unable to find user "${username}" in the database`,
+        );
+        return null;
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to lookup user "${username}" in the database`,
+        error.stack,
+      );
+      throw new InternalServerErrorException("Couldn't get user from database");
     }
   }
 
