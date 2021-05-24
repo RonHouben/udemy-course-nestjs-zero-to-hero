@@ -1,3 +1,4 @@
+import { InternalServerErrorException, Logger } from '@nestjs/common';
 import { User } from 'src/auth/user.entity';
 import { EntityRepository, Repository } from 'typeorm';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -7,6 +8,8 @@ import { Task } from './task.entity';
 
 @EntityRepository(Task)
 export class TaskRepository extends Repository<Task> {
+  private readonly logger = new Logger('TaskRepository');
+
   async createTask(createTaskDto: CreateTaskDto, user: User): Promise<Task> {
     const { title, description } = createTaskDto;
 
@@ -16,16 +19,27 @@ export class TaskRepository extends Repository<Task> {
     task.status = TaskStatus.OPEN;
     task.user = user;
 
-    await task.save();
+    try {
+      await task.save();
 
-    delete task.user;
-    return task;
+      delete task.user;
+
+      return task;
+    } catch (error) {
+      this.logger.error(
+        `Failed to create a task for user "${
+          user.username
+        }". Data: ${JSON.stringify(createTaskDto)}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to create a new task in the database',
+      );
+    }
   }
 
-  async getTasks(
-    { status, search }: GetTasksFilterDto,
-    user: User,
-  ): Promise<Task[]> {
+  async getTasks(filterDto: GetTasksFilterDto, user: User): Promise<Task[]> {
+    const { search, status } = filterDto;
     const query = this.createQueryBuilder('task');
 
     query.where('task.userId = :userId', { userId: user.id });
@@ -41,8 +55,19 @@ export class TaskRepository extends Repository<Task> {
       );
     }
 
-    const tasks = await query.getMany();
-
-    return tasks;
+    try {
+      const tasks = await query.getMany();
+      return tasks;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get tasks for user "${
+          user.username
+        }". Filters: ${JSON.stringify(filterDto)}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to get tasks from database',
+      );
+    }
   }
 }
