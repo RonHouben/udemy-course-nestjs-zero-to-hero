@@ -4,9 +4,10 @@ import { Logger } from '@nestjs/common';
 import * as config from 'config';
 
 async function bootstrap() {
-  const logger = new Logger('bootstrap');
+  const serverConfig = config.get<{ port: number }>('server');
 
-  const { port } = config.get<{ port: number }>('server');
+  const port = process.env.PORT || serverConfig.port;
+  const logger = new Logger('bootstrap');
 
   const app = await NestFactory.create(AppModule);
   await app.listen(port);
