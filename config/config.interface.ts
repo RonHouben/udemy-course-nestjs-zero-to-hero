@@ -12,3 +12,8 @@ export interface JwtConfig {
   secret: string;
   expiresIn: number;
 }
+
+export interface ServerConfig {
+  port: number;
+  origin: string | string[];
+}

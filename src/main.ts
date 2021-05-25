@@ -2,9 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
 import * as config from 'config';
+import { ServerConfig } from 'config/config.interface';
 
 async function bootstrap() {
-  const serverConfig = config.get<{ port: number }>('server');
+  const serverConfig = config.get<ServerConfig>('server');
 
   const port = process.env.PORT || serverConfig.port;
   const logger = new Logger('bootstrap');
@@ -13,6 +14,9 @@ async function bootstrap() {
 
   if (process.env.NODE_ENV === 'development') {
     app.enableCors();
+  } else {
+    app.enableCors({ origin: serverConfig.origin });
+    logger.log(`Accepting requests from origin "${serverConfig.origin}"`);
   }
 
   await app.listen(port);
