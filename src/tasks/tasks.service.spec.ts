@@ -23,7 +23,7 @@ const mockedTaskRepository = () => ({
 });
 
 describe('TasksService', () => {
-  let tasksService: TasksService;
+  let tasksService: jest.Mocked<TasksService>;
   let taskRepository: jest.Mocked<TaskRepository>;
 
   beforeEach(async () => {
@@ -124,6 +124,30 @@ describe('TasksService', () => {
       expect(tasksService.deleteTask(1, mockedUser)).rejects.toThrow(
         new NotFoundException(`Task with id "${1}" not found`),
       );
+    });
+  });
+
+  describe('updateTaskStatus', () => {
+    it('calls tasksService.getTaskById() and updates the status and returns the result', async () => {
+      const save = jest.fn().mockResolvedValue(true);
+
+      tasksService.getTaskById = jest.fn().mockResolvedValue({
+        status: TaskStatus.OPEN,
+        save,
+      });
+
+      expect(tasksService.getTaskById).not.toBeCalled();
+      expect(save).not.toHaveBeenCalled();
+
+      const result = await tasksService.updateTaskStatus(
+        1,
+        TaskStatus.DONE,
+        mockedUser,
+      );
+
+      expect(tasksService.getTaskById).toBeCalledWith(1, mockedUser);
+      expect(save).toHaveBeenCalled();
+      expect(result.status).toEqual(TaskStatus.DONE);
     });
   });
 });
